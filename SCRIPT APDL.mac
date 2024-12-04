@@ -1,0 +1,709 @@
+!Analise estrutural - A320
+!PROGRAMADORES: LUIZA HELENA KERSCHER
+!UNIDADES: N,mm
+!ÚLTIMA REVISÃO: 02/12/2024
+
+!***********************************************************************!
+!-- ----------------------------------------------------------------- --!
+!****-                   1. INICIALIZAÇÃO DO ANSYS                 -****!
+!-----------------------------------------------------------------------!
+FINISH			! Encerra possíveis processos abertos anteriormente 
+/CLEAR,NOSTART  	! Limpa o modelo 
+
+!-- ----------------------------------------------------------------- --!
+!****-                   2. PARÂMETROS DE ENTRADA                  -****!
+!-----------------------------------------------------------------------!
+!****-                  2.1 Geometricos                            -****!
+R 	= 1975   	! [mm] Raio Centro 3950
+Rn 	= R*0.2    	! [mm] Raio Nose
+Rt 	= R*0.2   	! [mm] Raio Tail
+!
+Comp.	= 37570		! [mm] Comprimento total
+l 	= 27500  	! [mm] Comprimento Centro
+ln 	= (Comp.-l)/2 	! [mm] Comprimento Nose
+lt 	= (Comp.-l)/2 	! [mm] Comprimento Tail
+!
+t 	= 3     	! [mm] Espessura da skin
+!
+a1	= 1140		! [mm] Antepara dianteira
+a2	= 29300		! [mm] Antepara traseira
+a3	= 13700		! [mm] Longarina dianteira
+a4	= 17800		! [mm] Longarina traseira
+a5	= 1500		! [mm] Trem de pouco do nariz
+
+!Variação das anteparas 
+m	= (r-rn)/(-ln)
+r_a1	= (m*(-a1)) + rn	
+r_a2	= (m*(-a2)) + rn
+r_a5	= (m*(-a5)) + rn
+
+mt= (rt-comp.)/(comp.-(l+ ln))
+
+!
+ang	= 15		! [deg] Variação angular dos reforçadores 
+!
+
+esp_frc = 530 - 530*0.2		! Espaçamesto frames do centro 
+*SET, n_fr, l/esp_frc
+*SET, n_frc, NINT(n_fr - 0.5)! Numero de frames do centro
+
+esp_frn = 350 - 350*0.2		! Espaçamesto frames do centro 
+*SET, n_fr, ln/esp_frn
+*SET, n_frn, NINT(n_fr - 0.5)! Numero de frames do centro
+
+hf	= 100		! Raio menor frames 
+
+!
+!-- ----------------------------------------------------------------- --!
+!****-                  2.2 Perfis                                 -****!
+b	= 25		! [mm] Base perfil reforço
+h	= 50		! [mm] Altura perfil reforço
+
+!-- ----------------------------------------------------------------- --!
+!****-                  2.3 Material                               -****!
+!Aluminio
+E	= 70000		! [N/mm²] Módulo de elasticidade
+nu	= 0.3		! [adm] Coeficiente de Poisson
+!
+!-- ----------------------------------------------------------------- --!
+!****-                  2.4 Discretização da malha                 -****!
+divl    = n_frc		! Divisão comprimento 
+divl_n	= n_frn
+divarc	= 3		! Divisão arcos dos frames
+divb	= 2		! Divisão base reforçador 
+divh	= 3		! Divisão altura reforçador
+
+!-- ----------------------------------------------------------------- --!
+!****-                  2.5 Condição de contorno                   -****!
+!****-                  CI2 - Peso G1                              -****!
+! Distâncias em mm (conforme fornecido no código original)
+xfbh 	= ln		! Antepara dianteira	
+xnlg 	= ln		! Trem de pouso
+xfs 	= 13700		! Longarina dianteira
+xrs 	= 17900		! Longarina traseira
+xach 	= 33800		! CG estabilizador horizontal
+xcgh 	= 35100		! CG estabilizador vertical
+lf 	= 37570		! Comprimento total
+xrbh 	= l+ln		! Antepara traseira
+r_tail 	= (m*(-xcgh)) + rn
+
+! Comprimentos das seções
+l1 	= xrbh - xfbh   ! Entre anteparas
+l2 	= xfs - xfbh    ! Entre antepara frontal e longarina frontal
+l3 	= xrbh - xrs    ! Entre antepara traseira e longarina traseira
+l4 	= xrs - xfs     ! Entre longarinas
+l5 	= lf - xrbh     ! Entre antepara traseira e cauda
+l6 	= xfbh          ! Entre nariz e antepara dianteira
+
+np = 2.5
+! Cargas
+W1 	= np*496216.49	! [N]
+W2 	= np*6472.38	! [N]
+W3 	= np*8629.85	! [N]
+W4	= np*172597.040 ! [N]
+W5	= np*32361.94   ! [N]
+W6	= np*0.00 	! [N]
+
+! Pressão [MPa]	 
+q1 = W1 /(3.1415*r*l1)	  ! Carga distribuída entre as anteparas
+q2 = W2 /(3.1415*r*l2)	  ! Carga distribuída entre antepara frontal e longarina frontal
+q3 = W3 /(3.1415*r*l3)	 ! Carga distribuída entre antepara traseira e longarina traseira
+q4 = W4 /(3.1415*r*l4)	  ! Carga distribuída entre longarinas
+q5 = W5 /(3.1415*r*l5)	  ! Carga distribuída entre antepara traseira e cauda
+q6 = W6 /(3.1415*r*l6)	  ! Carga distribuída entre nariz e antepara dianteira (neste caso será zero)
+
+
+
+! Forças Pontuais (N):
+
+Wnlg 	= 4170.99 	! [N] Trem de pouso do nariz 
+Wmlg	= 23964.84 	! [N] Trem de pouso do meio
+Lh	= 73575 	! [N] Sustentação Estabilizador 4850.99
+Wtail	= 12944.78 	! [N] Estabilizadores
+Ffs	= 360394.39 	! [N] Longarina dianteira
+Frs	= 360394.39	! [N] Longarina traseira
+!-- ----------------------------------------------------------------- --!
+!****-                  CI1 - Pressurização da cabine              -****!
+D_p 	= 0.054		! [MPa]
+!-- ----------------------------------------------------------------- --!
+!****-                  CI3 - Rajada lateral                       -****!
+xace 	= 33800		! [mm] Centro aeroinamico estabilizador
+L_v 	= 73000		! [N] 
+!-- ----------------------------------------------------------------- --!
+!****-                  CI4 - Utilização do profundor              -****!
+L_h 	= 73575		! [N] 4751.21
+!-- ----------------------------------------------------------------- --!
+!****-                  CI5 - Deslizamento lateral                 -****!
+F_tail 	= 7235.01	! [N] Força da cauda
+!-- ----------------------------------------------------------------- --!
+!****-                  CI6 - Pouso em três pontos                 -****!
+V_N 	= 70000		!Reação vertical no trem de pouso do nariz 691015.25
+V_M 	= 280000	!Reação vertical no trem de pouso principal 30019.75 N
+Wn 	= 1442070.00 
+
+Xnlg 	= 5.17		! Distance to nose landing gear [mm]
+Xmlg	= 17710
+!-- ----------------------------------------------------------------- --!
+!-- ----------------------------------------------------------------- --!
+!-- ----------------------------------------------------------------- --!
+!****-                   3. PRÉ PROCESSAMENTO                      -****!
+!-----------------------------------------------------------------------!
+/PREP7
+!****-                  3.1 Adicionar materiais                    -****!                                                                                                               ! 
+!
+MPTEMP,1,0     		! Define a tabela de temperaturas
+MPDATA,EX,1,,E 		! Define o módulo de young
+MPDATA,PRXY,1,,nu      	! Define o coeficiente de Poisson
+!-- ----------------------------------------------------------------- --!
+!****-                  3.2 Adicionar elementos                    -****!
+!
+ET,1,SHELL281           ! Define um tipo de elemento                                                                                                                                       
+KEYOPT,1,8,2            ! Armazena resultados em todas as camadas
+! 
+ET,2,BEAM189  		! Define um tipo de elemento                                                                                                            
+KEYOPT,1,1,0  		! Define 6 graus de liberdade por nó
+KEYOPT,1,2,0  		! Seção transversal dimensionada em função do alongamento axial, importante se NLGEOM,ON 
+KEYOPT,1,4,1  		! Saída da tensão de cisalhamento, somente relacionadas à flexão
+KEYOPT,1,11,0 		! Determinar automat. as propriedades de seção pré-integradas  
+KEYOPT,1,12,0 		! Opção para peças de seção variável 
+KEYOPT,1,13,0 		! Saída para hidrodinâmica
+
+!-- ----------------------------------------------------------------- --!
+!****-                  3.3 Adicionar seção                        -****!
+!
+SECTYPE,1,SHELL         ! Define o tipo de seção
+SECDATA,t,1,,5          ! Espessura, material,número de pontos de integração
+!
+SECTYPE, 2, BEAM, RECT, , 0  		! Define o tipo de seção                                                
+SECOFFSET,SHRC,              		! Define o offset da seção transversal                                               
+SECDATA,b,h,divb,divh,0,0,0,0,0,0,0,0   ! Dados referente a seção  
+
+!-- ----------------------------------------------------------------- --!
+!****-                  3.4 Modelo Geometrico                      -****!  
+!****-                       Pontos chave                          -****!
+! Fuselagem
+K,1,0,0,0		! #1 Nose                                                  
+K,2,0,0,ln              ! #2 Centro frente			                                                                                                                  !
+K,3,0,0,l+ln            ! #3 Centro atras
+K,4,0,0,lt+l+ln		! #4 Tail
+
+! Reforçadores
+LOCAL,11,1,,,,,,,1,
+*DO,i,1,360/ang,
+K,,rn,ang*i,0		! # Nose
+K,,r,ang*i,ln		! # Centro frente
+K,,r,ang*i,ln+l		! # Centro tras
+K,,rt,ang*i,ln+l+lt	! # Tail
+*ENDDO
+LOCAL,11,0
+
+! Frames
+LOCAL,11,1,,,,,,,1,
+
+*DO,j,1,n_frc,		! Parte central
+K,,0,0,ln + (esp_frc*j)
+*DO,i,1,360/ang,
+K,,r,ang*i,ln + (esp_frc*j)
+*ENDDO
+*ENDDO
+
+*DO,j,1,n_frn,		! Nariz
+K,,0,0,esp_frn*j
+*DO,i,1,360/ang,
+K,,(m*(-esp_frn*j)) + rn,ang*i,esp_frn*j
+*ENDDO
+*ENDDO
+
+*DO,j,1,n_frn,		! Cauda 
+K,,0,0,comp. - esp_frn*j
+*DO,i,1,360/ang,
+K,,(m*(-esp_frn*j)) + rn,ang*i,comp. - esp_frn*j
+*ENDDO
+*ENDDO
+
+LOCAL,11,0
+
+!-- ----------------------------------------------------------------- --!
+!****-                          Linhas                             -****!
+! Reforçadores
+nos=5 
+*DO,j,1,360/ang
+*DO,i,1,3,
+L,nos,nos+1
+nos=nos+1
+*ENDDO
+nos=nos+1
+*ENDDO
+
+! Anteparas
+nos=5			! Nose
+*DO,i,1,(360/ang)-1,		
+LARC,nos,nos+4,1,rn
+nos=nos+4
+*ENDDO
+LARC,nos,5,1,rn
+nos=6			! Centro Frente
+*DO,i,1,(360/ang)-1,		
+LARC,nos,nos+4,2,r
+nos=nos+4
+*ENDDO
+LARC,nos,6,2,r
+nos=7			! Centro tras
+*DO,i,1,(360/ang)-1,		
+LARC,nos,nos+4,3,r
+nos=nos+4
+*ENDDO
+LARC,nos,7,3,r
+nos=8			! Tail
+*DO,i,1,(360/ang)-1,		
+LARC,nos,nos+4,4,rt
+nos=nos+4
+*ENDDO
+LARC,nos,8,4,rt
+
+! Frames
+inicio_fr = 4 + (4*360/ang) + 1		
+inicio = inicio_fr	!Centro
+*DO, i, inicio, (inicio + n_frc + (n_frc*(360/ang)-1)), ((360/ang)+1)
+*DO,nos,i+1,i+(360/ang)-1,		
+LARC,nos,nos+1,i,r
+*ENDDO
+LARC,nos+1,i+1,i,r
+*ENDDO
+
+inicio = nos+2		!Nariz
+j=1
+*DO, i, inicio, (inicio + n_frn + (n_frn*(360/ang)-1)), ((360/ang)+1)
+*DO,nos,i+1,i+(360/ang)-1,		
+LARC,nos,nos+1,i,(m*(-esp_frn*j)) + rn
+*ENDDO
+LARC,nos+1,i+1,i,(m*(-esp_frn*j)) + rn
+j=j+1
+*ENDDO
+
+inicio = nos+2		!Cauda
+j=1
+*DO, i, inicio, (inicio + n_frn + (n_frn*(360/ang)-1)), ((360/ang)+1)
+*DO,nos,i+1,i+(360/ang)-1,		
+LARC,nos,nos+1,i,(m*(-esp_frn*j)) + rn
+*ENDDO
+LARC,nos+1,i+1,i,(m*(-esp_frn*j)) + rn
+j=j+1
+*ENDDO
+*GET, num_lines, LINE, 0, COUNT	
+!-- ----------------------------------------------------------------- --!
+!****-                           Área                              -****!
+
+! Centro
+inicio= (360/ang)*3 + (360/ang) + 1
+inicio_c = (360/ang)*3 + (360/ang)*4 + 1
+*DO,i,inicio, inicio+(360/ang)-1,
+ASKIN,i,inicio_c
+inicio_c = inicio_c + 1 
+*ENDDO
+inicio_c = (360/ang)*3 + (360/ang)*4 + 1 
+*DO,i,inicio_c, inicio_c + (n_frc*(360/ang)) - ((360/ang)+1),
+ASKIN,i,i+(360/ang)
+*ENDDO
+inicio=(360/ang)*3 + (360/ang)*2 + 1
+inicio_c = i+1 
+*DO,i,inicio, inicio+ (360/ang)-1,
+ASKIN,i,inicio_c
+inicio_c = inicio_c + 1 
+*ENDDO
+
+! Nose
+inicio= (360/ang)*3 + 1
+inicio_n = inicio_c
+*DO,i,inicio, inicio+ (360/ang)-1,
+ASKIN,i,inicio_n
+inicio_n = inicio_n + 1 
+*ENDDO
+inicio_n = inicio_c
+*DO,i,inicio_n, inicio_n + (n_frn*(360/ang)) - ((360/ang)+1),
+ASKIN,i,i+(360/ang)
+*ENDDO
+inicio= (360/ang)*3 + (360/ang) + 1
+inicio_n = i+1 
+*DO,i,inicio, inicio+ (360/ang) - 1,
+ASKIN,i,inicio_n
+inicio_n = inicio_n + 1 
+*ENDDO
+
+! Tail
+inicio=(360/ang)*3 + (360/ang)*3 + 1
+inicio_t = inicio_n
+*DO,i,inicio, inicio+(360/ang) - 1,
+ASKIN,i,inicio_t
+inicio_t = inicio_t + 1 
+*ENDDO
+
+inicio_t = inicio_n
+*DO,i,inicio_t, inicio_t + (n_frn*(360/ang))-((360/ang)+1),
+ASKIN,i,i+(360/ang)
+*ENDDO
+
+inicio= (360/ang)*3 + (360/ang)*2 + 1
+inicio_t = i+1 
+*DO,i,inicio, inicio+(360/ang) - 1,
+ASKIN,i,inicio_t
+inicio_t = inicio_t + 1 
+*ENDDO	
+
+! Anteparas
+ALLSEL,ALL		! Nose
+LSEL,S,LOC,Z,0,,, 	                                                                        
+AL,ALL			
+ALLSEL,ALL		! Centro
+LSEL,S,LOC,Z,ln,,, 
+AL,ALL	
+ALLSEL,ALL		! Centro
+LSEL,S,LOC,Z,ln+l,ln+l+10,, 
+AL,ALL	
+ALLSEL,ALL		! Tail
+LSEL,S,LOC,Z,ln+l+lt,ln+l+lt+10,, 
+AL,ALL
+
+ALLSEL,ALL
+*GET, new_lines, LINE, 0, COUNT	
+!-- ----------------------------------------------------------------- --!
+!-- ----------------------------------------------------------------- --!
+!****-                  3.5 Malha                                  -****!
+! Determinando as div das anteparas 
+ALLSEL,ALL		! Nose
+LSEL,S,LOC,Z,0,,, 	                                                                        
+LESIZE,ALL,,,divarc,,,,,1 			
+ALLSEL,ALL		! Centro
+LSEL,S,LOC,Z,ln-10,ln+10,, 
+LESIZE,ALL,,,divarc,,,,,1
+ALLSEL,ALL		! Centro
+LSEL,S,LOC,Z,ln+l-10,ln+l+10,, 
+LESIZE,ALL,,,divarc,,,,,1	
+ALLSEL,ALL		! Tail
+LSEL,S,LOC,Z,ln+l+lt-10,ln+l+lt+10,, 
+LESIZE,ALL,,,divarc,,,,,1
+
+! Determinando as div dos frames
+ALLSEL,ALL	
+LSEL,S,LINE,,(360/ang)*3 + (360/ang)*4 + 1 ,num_lines,,, 
+LESIZE,ALL,,,divarc,,,,,1
+
+ASEL,S,AREA,,1969
+! Skin
+ASEL,ALL
+*GET, num_AREAS, AREA, 0, COUNT	
+ASEL,S,AREA,,1,num_areas-4,1,0
+AATT,1,,1,,1		! MAT, REAL, TYPE, ESYS, SECN
+MSHAPE,0,2D             ! Especifica a forma do elemento na geração da malha
+MSHKEY,1                ! Define discretização mapeada
+AMESH,ALL
+
+! Anteparas
+ASEL,ALL
+ASEL,S,AREA,,num_areas - 3,num_areas,1,0
+AATT,1,,1,,1
+MSHAPE,0,2D             
+MSHKEY,0
+AMESH,ALL
+
+! Frames
+ALLSEL,ALL
+LSEL,S,LINE,,(360/ang)*3 + (360/ang)*4 + 1 ,num_lines,,,
+LATT,1,,2,,2,,2 
+LMESH,ALL
+
+! Reforçadores
+LSEL,S,LINE,,num_lines + 1, new_lines,,,
+LATT,1,,2,,2,,2 
+LMESH,ALL
+
+asel,s,loc,z,ln+l-500,ln+l
+areverse,all
+allsel
+
+!-- ----------------------------------------------------------------- --!
+!****-                  3.6 Restrições                             -****!
+!ASEL,ALL	! Selecionando todas as áreas
+!WSPRINGS 	! reates weak springs on corner nodes of a bounding box 
+        ! of the currently selected elements.
+
+ALLSEL,ALL                  
+ASEL,S,LOC,Z,ln
+DA,all,all,0
+
+ALLSEL,ALL
+ASEL,S,LOC,Z,ln+l-10,ln+l+10
+DA,all,all,0
+!-- ----------------------------------------------------------------- --!
+!****-                  3.7 Cargas                                 -****!
+CI	=1
+!****-                 CI2 - Peso G1                               -****!
+*IF,CU,EQ,2,THEN
+!****-                   q1 - Peso estrutura                       -****!
+ALLSEL,ALL
+ESEL, S, TYPE, , 1		! Seleciona elementos do tipo SHELL281
+ESEL, R, CENT, Z, xfbh+10, l+ln-10	! Refina a seleção para elementos entre xfbh e xrbh
+ESEL, R, CENT, Y, -R, 0		! Seleciona apenas o "piso"
+SFE, ALL,, PRES,,q1        	! Aplica a carga de pressão em todos os elementos selecionados
+    
+!-- ----------------------------------------------------------------- --!
+!****-                   q2 - Piso de carga frontal                -****!
+ALLSEL,ALL
+ESEL, S, TYPE, , 1		! Seleciona elementos do tipo SHELL281
+ESEL, R, CENT, Z, xfbh+5000, xfs	! Refina a seleção para elementos entre xfbh e xrbh
+ESEL, R, CENT, Y, -R, 0		! Seleciona apenas o "piso"
+SFE, ALL,, PRES,,q2      	! Aplica a carga de pressão em todos os elementos selecionados    
+!-- ----------------------------------------------------------------- --!
+!****-                   q3 - Piso de carga traseira               -****!
+ALLSEL,ALL
+ESEL, S, TYPE, , 1		! Seleciona elementos do tipo SHELL281
+ESEL, R, CENT, Z, xrs, xrbh-10	! Refina a seleção para elementos entre xfbh e xrbh
+ESEL, R, CENT, Y, -R, 0		! Seleciona apenas o "piso"
+SFE, ALL,, PRES,,q3        	! Aplica a carga de pressão em todos os elementos selecionados
+    
+!-- ----------------------------------------------------------------- --!
+!****-                   q4 - Estrutura da asa e combustível       -****!
+ALLSEL,ALL
+ESEL, S, TYPE, , 1		! Seleciona elementos do tipo SHELL281
+ESEL, R, CENT, Z, xfs, xrs	! Refina a seleção para elementos entre xfbh e xrbh
+ESEL, R, CENT, Y, -R, 0		! Seleciona apenas o "piso"
+SFE, ALL,, PRES,,q4        	! Aplica a carga de pressão em todos os elementos selecionados
+    
+!-- ----------------------------------------------------------------- --!
+!****-                   q5 - APU e estrutura estabilizador        -****!
+ALLSEL,ALL
+ESEL, S, TYPE, , 1		! Seleciona elementos do tipo SHELL281
+ESEL, R, CENT, Z, xrbh+10, lf-10	! Refina a seleção para elementos entre xfbh e xrbh
+ESEL, R, CENT, Y, -R, 0		! Seleciona apenas o "piso"
+SFE, ALL,, PRES,,q5        	! Aplica a carga de pressão em todos os elementos selecionados
+    
+!-- ----------------------------------------------------------------- --!
+!****-             Wnlg - Peso trem de pouco nariz                 -****!
+ALLSEL,ALL
+NSEL, S, LOC, Z, a5-500, a5+500	! Seleciona todos os nós que estão na coordenada Z especificada
+NSEL, R, LOC, X, 0
+NSEL, R, LOC, Y, -r_a5-100,-r_a5+100
+*get,no1,node,0,num,min
+F, no1, FY, -Wnlg	! Aplica uma força em todos os nós selecionados
+!-- ----------------------------------------------------------------- --!
+!****-             Wmlg - Peso trem de pouco meio                  -****!
+!    ALLSEL,ALL
+!    NSEL, S, LOC, Z, xfs-90, xfs+50	! Seleciona todos os nós que estão na coordenada Z especificada
+!    NSEL, R, LOC, X, r
+!    NSEL, R, LOC, Y, 0
+!    *get,no1,node,0,num,min
+!    F, no1, FY, -Wmlg/2	! Aplica uma força em todos os nós selecionados
+!    NSEL, S, LOC, Z, xfs-90, xfs+50	! Seleciona todos os nós que estão na coordenada Z especificada
+!    NSEL, R, LOC, X, -r
+!    NSEL, R, LOC, Y, 0
+!    *get,no1,node,0,num,min
+!    F, no1, FY, -Wmlg/2	! Aplica uma força em todos os nós selecionados
+!    
+!    ALLSEL,ALL
+!    NSEL, S, LOC, Z, xrs	! Seleciona todos os nós que estão na coordenada Z especificada
+!    NSEL, R, LOC, X, r
+!    NSEL, R, LOC, Y, 0
+!    *get,no1,node,0,num,min
+!    F, no1, FY, -Wmlg/2	! Aplica uma força em todos os nós selecionados
+!    NSEL, S, LOC, Z, xrs	! Seleciona todos os nós que estão na coordenada Z especificada
+!    NSEL, R, LOC, X, -r
+!    NSEL, R, LOC, Y, 0
+!    *get,no1,node,0,num,min
+!    F, no1, FY, -Wmlg/2	! Aplica uma força em todos os nós selecionados
+!-- ----------------------------------------------------------------- --!
+!****-                Wtail - Peso estabilizadores                 -****!
+ALLSEL,ALL
+NSEL, S, LOC, Z, xcgh-20, xcgh+20	! Seleciona todos os nós que estão na coordenada Z especificada
+NSEL, R, LOC, X, 0
+*get,ymax,node,0,mxloc,y
+NSEL, R, LOC, Y, ymax
+F, ALL, FY, -Wtail	! Aplica uma força em todos os nós selecionados
+!-- ----------------------------------------------------------------- --!
+!****-                Ffs - Resultante antepara diantera                 -****!
+ALLSEL,ALL
+NSEL, S, LOC, Z, xfs-90, xfs+50	! Seleciona todos os nós que estão na coordenada Z especificada
+NSEL, R, LOC, X, r
+NSEL, R, LOC, Y, 0
+*get,no1,node,0,num,min
+F, no1, FY, Ffs/2 - wmlg/4	! Aplica uma força em todos os nós selecionados
+NSEL, S, LOC, Z, xfs-90, xfs+50	! Seleciona todos os nós que estão na coordenada Z especificada
+NSEL, R, LOC, X, -r
+NSEL, R, LOC, Y, 0
+*get,no1,node,0,num,min
+F, no1, FY, Ffs/2 - wmlg/4	! Aplica uma força em todos os nós selecionados
+!-- ----------------------------------------------------------------- --!
+!****-                Frs - Resultante antepara trasera                 -****!
+ALLSEL,ALL
+NSEL, S, LOC, Z, xrs	! Seleciona todos os nós que estão na coordenada Z especificada
+NSEL, R, LOC, X, r
+NSEL, R, LOC, Y, 0
+*get,no1,node,0,num,min
+F, no1, FY, Frs/2 -  wmlg/4	! Aplica uma força em todos os nós selecionados
+NSEL, S, LOC, Z, xrs	! Seleciona todos os nós que estão na coordenada Z especificada
+NSEL, R, LOC, X, -r
+NSEL, R, LOC, Y, 0
+*get,no1,node,0,num,min
+F, no1, FY, Frs/2- wmlg/4	! Aplica uma força em todos os nós selecionados
+!-- ----------------------------------------------------------------- --!
+*ENDIF
+!-- ----------------------------------------------------------------- --!
+!****-                 CI1 - Pressurização da cabine               -****!
+*IF,CU,EQ,1,THEN	! Pressurização da cabine
+ASEL,ALL
+asel,S,loc,z,ln+10, ln+l-10
+SFA,all,,pres,D_p  ! Aplica uma carga de pressão negativa para simular a pressurização interna
+*ENDIF
+!-- ----------------------------------------------------------------- --!
+!****-                 CI3 - Rajada lateral                        -****!
+*IF,CU,EQ,3,THEN	
+!
+ALLSEL,ALL
+NSEL, S, LOC, Z, comp.- (esp_frn*11) !Seleciona todos os nós que estão na coordenada Z especificada
+NSEL, R, LOC, x,0
+NSEL, R, LOC, Y, (m*(-esp_frn*11)) + rn
+
+F, ALL, FX, L_v	! Aplica uma força em todos os nós selecionados
+
+ALLSEL,ALL
+NSEL, S, LOC, Z, a3 !Seleciona todos os nós que estão na coordenada Z especificada
+NSEL, R, LOC, x, -r
+*get,no1,node,0,num,min
+F, no1, Fx, L_v/2	! Aplica uma força em todos os nós selecionados
+
+ALLSEL,ALL
+NSEL, S, LOC, Z, a4-50, a4+50 !Seleciona todos os nós que estão na coordenada Z especificada
+NSEL, R, LOC, x, -r
+*get,no1,node,0,num,min
+F, no1, Fx,L_v/2
+*ENDIF
+!-- ----------------------------------------------------------------- --!
+!****-                 CI4 - Utilização do profundor +1            -****!
+*IF,CU,EQ,4,THEN
+!
+ALLSEL,ALL
+NSEL, S, LOC, Z, comp.- (esp_frn*11) !Seleciona todos os nós que estão na coordenada Z especificada
+NSEL, R, LOC, x,0
+NSEL, R, LOC, Y, (m*(-esp_frn*11)) + rn
+F, ALL, FY, L_h	
+
+ALLSEL,ALL
+NSEL, S, LOC, Z, a3 !Seleciona todos os nós que estão na coordenada Z especificada
+NSEL, R, LOC, y, -R+10, -R-10
+*get,no1,node,0,num,min
+F, no1, FY, L_h		
+
+ALLSEL,ALL
+NSEL, S, LOC, Z, a4-50, a4+50 !Seleciona todos os nós que estão na coordenada Z especificada
+NSEL, R, LOC, y, -R+2, -R-2
+*get,no1,node,0,num,min
+F, no1, FY, L_h
+
+*ENDIF
+!-- ----------------------------------------------------------------- --!
+!****-                 CI4 - Utilização do profundor -1            -****!
+*IF,CU,EQ,-4,THEN
+!
+ALLSEL,ALL
+NSEL, S, LOC, Z, comp.- (esp_frn*11) !Seleciona todos os nós que estão na coordenada Z especificada
+NSEL, R, LOC, x,0
+NSEL, R, LOC, Y, (m*(-esp_frn*11)) + rn
+F, ALL, FY, -L_h	
+
+ALLSEL,ALL
+NSEL, S, LOC, Z, a3 !Seleciona todos os nós que estão na coordenada Z especificada
+NSEL, R, LOC, y, -R+10, -R-10
+*get,no1,node,0,num,min
+F, no1, FY, -L_h		
+
+ALLSEL,ALL
+NSEL, S, LOC, Z, a4-50, a4+50 !Seleciona todos os nós que estão na coordenada Z especificada
+NSEL, R, LOC, y, -R+2, -R-2
+*get,no1,node,0,num,min
+F, no1, FY, -L_h
+
+*ENDIF
+!-- ----------------------------------------------------------------- --!
+!****-                 CI5 - Deslizamento lateral                  -****!
+*IF,CU,EQ,5,THEN	
+!
+ALLSEL,ALL
+NSEL, S, LOC, Z, comp.- (esp_frn*11) 
+NSEL, R, LOC, x,0
+NSEL, R, LOC, Y, (m*(-esp_frn*11)) + rn
+F, ALL, FX, F_tail
+*ENDIF
+!-- ----------------------------------------------------------------- --!
+!****-                 CI6 - Pouso em três pontos                  -****!
+*IF,CU,EQ,6,THEN
+
+ALLSEL,ALL
+NSEL, S, LOC, Z, a5-500, a5+500	! Seleciona todos os nós que estão na coordenada Z especificada
+NSEL, R, LOC, X, 0
+NSEL, R, LOC, Y, -r_a5-100,-r_a5+100
+*get,no1,node,0,num,min
+F, no1, FY, V_N
+
+ALLSEL,ALL
+NSEL, S, LOC, Z, xrs	! Seleciona todos os nós que estão na coordenada Z especificada
+NSEL, R, LOC, X, 0
+NSEL, R, LOC, Y, -R+2, -R-2
+*get,no1,node,0,num,min
+F, no1, FY,  V_M/2	! Aplica uma força em todos os nós selecionados
+
+NSEL, S, LOC, Z, xfs	! Seleciona todos os nós que estão na coordenada Z especificada
+NSEL, R, LOC, X, 0
+NSEL, R, LOC, Y, -R+2, -R-2
+*get,no1,node,0,num,min
+F, no1, FY,  V_M/2
+*ENDIF
+!-- ----------------------------------------------------------------- --!
+!-- ----------------------------------------------------------------- --!
+!****-                  3.8 Plot MEF                              -****!           
+!                                                                                                                              
+/REPLOT			! Replota a tela             
+/EPLOT			! Plota os elementos                           
+/ESHAPE,1.0         	! Extruda a forma da seção
+!
+!-- ----------------------------------------------------------------- --!
+!-- ----------------------------------------------------------------- --!
+!****-                   4. PROCESSAMENTO                          -****!
+!-----------------------------------------------------------------------!
+/SOLU
+!
+ANTYPE,0,NEW		! Especifica o tipo de análise			
+ALLSEL,ALL          	! Seleciona tudo (geometria, nós e elementos)
+SOLVE			! Resolve o modelo 
+!
+!-- ----------------------------------------------------------------- --!
+!****-                   5. PÓS PROCESSAMENTO                      -****!
+!-----------------------------------------------------------------------!
+/POST1
+!
+PLESOL, S, 1,, 		! Exibe as tensões de von Mises para verificar as áreas críticas
+PLDISP,1 		! Plota apenas a deformada
+PLNSOL,U,Y,1,20  	! Plota a solução nodal em y 
+
+! Esforço Cortante 
+!   
+ETABLE,FZ_I,SMISC,5     ! Cria uma tabela com os resultados extraídos  
+! dos nós i's dos elementos
+ETABLE,FZ_J,SMISC,18    ! Cria uma tabela com os resultados extraídos  
+! dos nós j's dos elementos
+PLLS,FZ_I,FZ_J,1,0,1    ! Plota os itens das tabelas feitas previamente 
+PRETAB,FZ_I,FZ_J        ! Lista os itens das tabelas feitas previamente 
+!   
+! Momento Fletor
+!   
+ETABLE,MY_I,SMISC,2 
+ETABLE,MY_J,SMISC,15
+PLLS,MY_I,MY_J,1,0,1
+PRETAB,MY_I,MY_J
+!   
+/CONT,1,5,-6250, ,0     ! Edita a faixa gráfica de resultados  
+/CONT,1,9,AUTO          ! Retorna o default da faiza gráfica dos resultados
+PLNSOL, S,EQV,1,20  
+SAVE
+SAVE
+FINISH  
+! /EXIT,MODEL   
+!-- ----------------------------------------------------------------- --!
